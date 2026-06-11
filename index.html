@@ -53,11 +53,19 @@
     <label>常勤の週所定労働時間 <input type="number" id="fullTimeHours" value="40" min="32" max="40" step="0.5" style="width:70px"> 時間</label>
 
     <h2 style="margin-top:20px">2. シフト表を貼り付け</h2>
+    <p class="hint">Excelでこの並びにした表をコピーして、下の枠にそのまま貼り付けてください(1行=1人)。</p>
+    <div class="tablewrap"><table class="example">
+      <tr><th>氏名</th><th>職種</th><th>資格</th><th>勤務形態</th><th>1日</th><th>2日</th><th>3日</th><th>4日</th><th>…</th></tr>
+      <tr><td>介護 花子</td><td>介護職員</td><td>介護福祉士</td><td>A</td><td>早</td><td>日</td><td>休</td><td>8</td><td>…</td></tr>
+      <tr><td>山田 太郎</td><td>介護職員</td><td>実務者研修</td><td>C</td><td>半</td><td>休</td><td>4</td><td></td><td>…</td></tr>
+    </table></div>
     <p class="hint">
-      Excelからコピーして貼り付け(タブ区切り)、またはCSV。<br>
-      1行=1人: <code>氏名, 職種, 資格, 勤務形態(A/B/C/D), 1日の時間, 2日の時間, …</code>(休みは空欄か0)<br>
-      勤務形態 … A: 常勤・専従 / B: 常勤・兼務 / C: 非常勤・専従 / D: 非常勤・兼務
+      ・日々のマスは「8」のような時間でも、「早」「遅」「休」のような<strong>記号のままでもOK</strong>(休みは空欄でも可)<br>
+      ・勤務形態 … A: 常勤・専従 / B: 常勤・兼務 / C: 非常勤・専従 / D: 非常勤・兼務
     </p>
+    <label>記号→時間の変換ルール(事業所に合わせて編集可)
+      <input type="text" id="codeMap" value="早=8, 日=8, 遅=8, 夜=10, 半=4, 休=0, 公=0, 有=0" size="48">
+    </label>
     <textarea id="shiftInput" placeholder="介護 花子&#9;介護職員&#9;介護福祉士&#9;A&#9;8&#9;8&#9;&#9;8&#9;8&#9;8 …"></textarea>
     <div style="margin-top:10px">
       <button onclick="generate()">一覧表を作成</button>
@@ -87,14 +95,27 @@ function daysInMonth(ym) {
   return new Date(y, m, 0).getDate();
 }
 
+function parseCodeMap() {
+  const map = {};
+  document.getElementById("codeMap").value.split(/[,、，]/).forEach(pair => {
+    const [k, v] = pair.split("=").map(s => (s || "").trim());
+    if (k) map[k] = parseFloat(v) || 0;
+  });
+  return map;
+}
+
 function parseShift(text) {
+  const map = parseCodeMap();
   return text.trim().split(/\r?\n/).filter(l => l.trim()).map(line => {
     const cells = line.includes("\t") ? line.split("\t") : line.split(",");
     const [name, role, license, kubun, ...hours] = cells.map(c => c.trim());
     return {
       name, role: role || "", license: license || "",
       kubun: (kubun || "").toUpperCase(),
-      hours: hours.map(h => parseFloat(h) || 0)
+      hours: hours.map(h => {
+        const n = parseFloat(h);
+        return isNaN(n) ? (map[h] || 0) : n;
+      })
     };
   });
 }
@@ -167,8 +188,8 @@ function loadSample() {
   const ym = document.getElementById("targetMonth").value;
   const nDays = daysInMonth(ym);
   const people = [
-    ["介護 花子", "介護職員", "介護福祉士", "A", [8,8,0,8,8,8,0]],
-    ["山田 太郎", "介護職員", "実務者研修", "C", [4,0,4,0,4,0,0]],
+    ["介護 花子", "介護職員", "介護福祉士", "A", ["早","日","休","早","日","早","休"]],
+    ["山田 太郎", "介護職員", "実務者研修", "C", ["半","休",4,"休","半","休","休"]],
     ["佐藤 道子", "生活相談員", "社会福祉士", "B", [8,8,8,0,0,8,8]],
     ["鈴木 一郎", "看護職員", "看護師", "D", [0,6,0,6,0,6,0]],
     ["高橋 恵", "機能訓練指導員", "理学療法士", "C", [0,0,5,0,5,0,0]]
