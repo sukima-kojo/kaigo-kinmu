@@ -32,16 +32,19 @@
   th { background: #ebf8ff; }
   td.name { text-align: left; min-width: 90px; }
   tr.summary td { background: #fffaf0; font-weight: bold; }
+  table.staff { font-size: 13px; }
+  table.staff input, table.staff select { padding: 4px 6px; font-size: 13px; border: 1px solid var(--border); border-radius: 4px; }
   .totals { margin-top: 12px; font-size: 14px; }
   .totals strong { color: var(--main); }
+  .memo { background: #ebf8ff; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #2c5282; margin-top: 10px; }
   footer { text-align: center; font-size: 12px; color: #718096; padding: 24px; }
-  @media print { header, #inputSec, footer, button { display: none; } section { border: none; } }
+  @media print { header, #inputSec, #staffSec, footer, button { display: none; } section { border: none; } }
 </style>
 </head>
 <body>
 <header>
   <h1>勤務形態一覧表メーカー</h1>
-  <p>作成済みのシフト表を貼り付けるだけで、指定申請・運営指導で提出する「勤務形態一覧表」(参考様式ベース)と常勤換算を自動作成。データはブラウザ内で完結し、どこにも送信されません。</p>
+  <p>手元のシフト表を貼り付けるだけで、指定申請・運営指導で提出する「勤務形態一覧表」(参考様式ベース)と常勤換算を自動作成。データはブラウザ内で完結し、どこにも送信されません。</p>
   <p style="margin:4px 0 0;font-size:12px;opacity:.8">※シフト作成ソフトではありません。お手元のシフト表を役所提出用の様式に変換するツールです。</p>
 </header>
 <main>
@@ -52,29 +55,34 @@
     <label>対象月 <input type="month" id="targetMonth" value="2026-06"></label>
     <label>常勤の週所定労働時間 <input type="number" id="fullTimeHours" value="40" min="32" max="40" step="0.5" style="width:70px"> 時間</label>
 
-    <h2 style="margin-top:20px">2. シフト表を貼り付け</h2>
-    <p class="hint">Excelでこの並びにした表をコピーして、下の枠にそのまま貼り付けてください(1行=1人)。</p>
+    <h2 style="margin-top:20px">2. いつものシフト表を貼り付け</h2>
+    <p class="hint">Excelのシフト表から「氏名の列+日々のマス」を範囲選択してコピーし、下の枠に貼り付けてください。<strong>並び替えや列の追加は不要</strong>です。</p>
     <div class="tablewrap"><table class="example">
-      <tr><th>氏名</th><th>職種</th><th>資格</th><th>勤務形態</th><th>1日</th><th>2日</th><th>3日</th><th>4日</th><th>…</th></tr>
-      <tr><td>介護 花子</td><td>介護職員</td><td>介護福祉士</td><td>A</td><td>早</td><td>日</td><td>休</td><td>8</td><td>…</td></tr>
-      <tr><td>山田 太郎</td><td>介護職員</td><td>実務者研修</td><td>C</td><td>半</td><td>休</td><td>4</td><td></td><td>…</td></tr>
+      <tr><th>氏名</th><th>1日</th><th>2日</th><th>3日</th><th>4日</th><th>…</th></tr>
+      <tr><td>介護 花子</td><td>早</td><td>日</td><td>休</td><td>8</td><td>…</td></tr>
+      <tr><td>山田 太郎</td><td>半</td><td>休</td><td>4</td><td></td><td>…</td></tr>
     </table></div>
-    <p class="hint">
-      ・日々のマスは「8」のような時間でも、「早」「遅」「休」のような<strong>記号のままでもOK</strong>(休みは空欄でも可)<br>
-      ・勤務形態 … A: 常勤・専従 / B: 常勤・兼務 / C: 非常勤・専従 / D: 非常勤・兼務
-    </p>
+    <p class="hint">日々のマスは「8」のような時間でも、「早」「遅」「休」のような記号のままでもOK(休みは空欄でも可)。</p>
     <label>記号→時間の変換ルール(事業所に合わせて編集可)
       <input type="text" id="codeMap" value="早=8, 日=8, 遅=8, 夜=10, 半=4, 休=0, 公=0, 有=0" size="48">
     </label>
-    <textarea id="shiftInput" placeholder="介護 花子&#9;介護職員&#9;介護福祉士&#9;A&#9;8&#9;8&#9;&#9;8&#9;8&#9;8 …"></textarea>
+    <textarea id="shiftInput" placeholder="介護 花子&#9;早&#9;日&#9;休&#9;8 …(Excelからそのまま貼り付け)"></textarea>
     <div style="margin-top:10px">
-      <button onclick="generate()">一覧表を作成</button>
+      <button onclick="loadShift()">読み込む</button>
       <button class="sub" onclick="loadSample()">サンプルデータを試す</button>
     </div>
   </section>
 
+  <section id="staffSec" style="display:none">
+    <h2>3. スタッフ情報(ここで選ぶだけ)</h2>
+    <p class="hint">職種・資格・勤務形態はシフト表にはない情報なので、ここで選んでください。</p>
+    <div class="tablewrap"><table class="staff" id="staffTable"></table></div>
+    <div class="memo">✓ ここで入力した内容は<strong>この端末に記憶されます</strong>。来月からはシフト表を貼るだけで完成します。</div>
+    <div style="margin-top:12px"><button onclick="generate()">一覧表を作成</button></div>
+  </section>
+
   <section id="resultSec" style="display:none">
-    <h2>3. 勤務形態一覧表(プレビュー)</h2>
+    <h2>4. 勤務形態一覧表(プレビュー)</h2>
     <div id="meta" class="hint"></div>
     <div class="tablewrap"><table id="resultTable"></table></div>
     <div class="totals" id="totals"></div>
@@ -83,11 +91,24 @@
       <button class="sub" onclick="window.print()">印刷</button>
     </div>
   </section>
+
+  <datalist id="roleList">
+    <option value="介護職員"><option value="生活相談員"><option value="看護職員">
+    <option value="機能訓練指導員"><option value="管理者"><option value="介護支援専門員">
+    <option value="サービス提供責任者"><option value="事務員">
+  </datalist>
+  <datalist id="licenseList">
+    <option value="介護福祉士"><option value="実務者研修"><option value="初任者研修">
+    <option value="社会福祉士"><option value="看護師"><option value="准看護師">
+    <option value="理学療法士"><option value="作業療法士"><option value="介護支援専門員"><option value="なし">
+  </datalist>
 </main>
 <footer>勤務形態一覧表メーカー(プロトタイプ)— ご意見・「使いたい」の声をお待ちしています</footer>
 
 <script>
 const KUBUN = { A: "常勤・専従", B: "常勤・兼務", C: "非常勤・専従", D: "非常勤・兼務" };
+const STORE_KEY = "kaigo-kinmu-staff";
+let parsedRows = [];
 let lastResult = null;
 
 function daysInMonth(ym) {
@@ -104,38 +125,64 @@ function parseCodeMap() {
   return map;
 }
 
-function parseShift(text) {
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+
+function loadShift() {
   const map = parseCodeMap();
-  return text.trim().split(/\r?\n/).filter(l => l.trim()).map(line => {
-    const cells = line.includes("\t") ? line.split("\t") : line.split(",");
-    const [name, role, license, kubun, ...hours] = cells.map(c => c.trim());
-    return {
-      name, role: role || "", license: license || "",
-      kubun: (kubun || "").toUpperCase(),
-      hours: hours.map(h => {
-        const n = parseFloat(h);
-        return isNaN(n) ? (map[h] || 0) : n;
-      })
-    };
+  const skipNames = ["氏名", "名前", "スタッフ", "職員名"];
+  parsedRows = document.getElementById("shiftInput").value
+    .trim().split(/\r?\n/).filter(l => l.trim())
+    .map(line => {
+      const cells = (line.includes("\t") ? line.split("\t") : line.split(",")).map(c => c.trim());
+      const [name, ...dayCells] = cells;
+      return {
+        name,
+        hours: dayCells.map(h => {
+          const n = parseFloat(h);
+          return isNaN(n) ? (map[h] || 0) : n;
+        })
+      };
+    })
+    .filter(r => r.name && !skipNames.some(s => r.name.startsWith(s)));
+  if (!parsedRows.length) { alert("シフト表を貼り付けてください(1列目が氏名になるように)"); return; }
+
+  const saved = loadStore();
+  let html = "<tr><th>氏名(シフト表から読込)</th><th>職種</th><th>資格</th><th>勤務形態</th></tr>";
+  parsedRows.forEach((r, i) => {
+    const s = saved[r.name] || {};
+    html += `<tr><td class="name">${r.name}</td>
+      <td><input list="roleList" id="role_${i}" value="${s.role || ""}" placeholder="介護職員"></td>
+      <td><input list="licenseList" id="lic_${i}" value="${s.license || ""}" placeholder="介護福祉士"></td>
+      <td><select id="kubun_${i}">
+        ${["A","B","C","D"].map(k => `<option value="${k}" ${s.kubun === k ? "selected" : ""}>${k}: ${KUBUN[k]}</option>`).join("")}
+      </select></td></tr>`;
   });
+  document.getElementById("staffTable").innerHTML = html;
+  document.getElementById("staffSec").style.display = "";
+  document.getElementById("staffSec").scrollIntoView({ behavior: "smooth" });
 }
 
 function generate() {
   const ym = document.getElementById("targetMonth").value;
   const nDays = daysInMonth(ym);
   const weekHours = parseFloat(document.getElementById("fullTimeHours").value) || 40;
-  const staff = parseShift(document.getElementById("shiftInput").value);
-  if (!staff.length) { alert("シフト表を貼り付けてください"); return; }
 
-  // 週平均 = 月合計 ÷ (暦日数/7) / 常勤換算 = 週平均 ÷ 週所定労働時間(上限1.0)
-  const weeks = nDays / 7;
-  staff.forEach(s => {
-    s.hours = s.hours.slice(0, nDays);
-    while (s.hours.length < nDays) s.hours.push(0);
-    s.total = s.hours.reduce((a, b) => a + b, 0);
-    s.weekAvg = s.total / weeks;
-    s.fte = Math.min(s.weekAvg / weekHours, 1.0);
+  const saved = loadStore();
+  const staff = parsedRows.map((r, i) => {
+    const role = document.getElementById(`role_${i}`).value.trim();
+    const license = document.getElementById(`lic_${i}`).value.trim();
+    const kubun = document.getElementById(`kubun_${i}`).value;
+    saved[r.name] = { role, license, kubun };
+    const hours = r.hours.slice(0, nDays);
+    while (hours.length < nDays) hours.push(0);
+    const total = hours.reduce((a, b) => a + b, 0);
+    const weekAvg = total / (nDays / 7);
+    return { name: r.name, role, license, kubun, hours, total, weekAvg,
+             fte: Math.min(weekAvg / weekHours, 1.0) };
   });
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(saved)); } catch (e) {}
 
   const table = document.getElementById("resultTable");
   let html = "<tr><th>氏名</th><th>職種</th><th>資格</th><th>勤務形態</th>";
@@ -147,7 +194,6 @@ function generate() {
     html += `<td>${s.total.toFixed(1)}</td><td>${s.weekAvg.toFixed(1)}</td><td>${s.fte.toFixed(2)}</td></tr>`;
   });
 
-  // 職種ごとの常勤換算合計
   const byRole = {};
   staff.forEach(s => { byRole[s.role] = (byRole[s.role] || 0) + s.fte; });
   const totalFte = staff.reduce((a, s) => a + s.fte, 0);
@@ -188,19 +234,22 @@ function loadSample() {
   const ym = document.getElementById("targetMonth").value;
   const nDays = daysInMonth(ym);
   const people = [
-    ["介護 花子", "介護職員", "介護福祉士", "A", ["早","日","休","早","日","早","休"]],
-    ["山田 太郎", "介護職員", "実務者研修", "C", ["半","休",4,"休","半","休","休"]],
-    ["佐藤 道子", "生活相談員", "社会福祉士", "B", [8,8,8,0,0,8,8]],
-    ["鈴木 一郎", "看護職員", "看護師", "D", [0,6,0,6,0,6,0]],
-    ["高橋 恵", "機能訓練指導員", "理学療法士", "C", [0,0,5,0,5,0,0]]
+    ["介護 花子", ["早","日","休","早","日","早","休"], "介護職員", "介護福祉士", "A"],
+    ["山田 太郎", ["半","休",4,"休","半","休","休"], "介護職員", "実務者研修", "C"],
+    ["佐藤 道子", [8,8,8,"休","休",8,8], "生活相談員", "社会福祉士", "B"],
+    ["鈴木 一郎", ["休",6,"休",6,"休",6,"休"], "看護職員", "看護師", "D"],
+    ["高橋 恵", ["休","休",5,"休",5,"休","休"], "機能訓練指導員", "理学療法士", "C"]
   ];
   document.getElementById("officeName").value = "サンプルデイサービス";
   document.getElementById("serviceType").value = "通所介護";
-  const lines = people.map(([n, r, l, k, pat]) => {
-    const hours = Array.from({length: nDays}, (_, i) => pat[i % 7] || "");
-    return [n, r, l, k, ...hours].join("\t");
+  document.getElementById("shiftInput").value = people.map(([n, pat]) =>
+    [n, ...Array.from({length: nDays}, (_, i) => pat[i % 7])].join("\t")).join("\n");
+  loadShift();
+  people.forEach(([n, pat, role, lic, kubun], i) => {
+    document.getElementById(`role_${i}`).value = role;
+    document.getElementById(`lic_${i}`).value = lic;
+    document.getElementById(`kubun_${i}`).value = kubun;
   });
-  document.getElementById("shiftInput").value = lines.join("\n");
   generate();
 }
 </script>
